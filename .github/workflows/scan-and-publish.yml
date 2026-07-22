@@ -1,5 +1,6 @@
 name: Scan flights and publish
 
+# Runs the scan and publishes the report to GitHub Pages.
 on:
   schedule:
     # Weekly rather than daily on purpose: this scrapes Google's public flight
