@@ -1,0 +1,47 @@
+name: Build desktop app
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [master]
+    paths:
+      - "gui_app.py"
+      - "flight_scanner.py"
+      - "requirements.txt"
+      - ".github/workflows/build-exe.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build FlightFareFinder.exe
+        run: >
+          pyinstaller --onefile --windowed --name FlightFareFinder
+          --collect-all tkcalendar --collect-all babel
+          --collect-all primp --collect-all selectolax --collect-all fast_flights
+          gui_app.py
+
+      - name: Publish as a GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Flight Fare Finder (latest build)
+          body: >
+            Automatically built from the current code. Download FlightFareFinder.exe
+            below and double-click to run -- no installation needed.
+          make_latest: true
+          files: dist/FlightFareFinder.exe

@@ -1137,7 +1137,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument(
         "--departure-step",
         type=int,
-        default=7,
+        default=1,
         help="Sample departure dates every N days across the search window (or within each --departure-months month).",
     )
     p.add_argument("--min-nights", type=int, default=30, help="Minimum trip length in nights. Ignored if --nights is set.")
