@@ -1,0 +1,64 @@
+name: Scan flights and publish
+
+on:
+  schedule:
+    # Weekly rather than daily on purpose: this scrapes Google's public flight
+    # search from a shared GitHub-hosted IP range, which is more likely to get
+    # rate-limited/blocked than a home connection. Weekly is plenty fresh for
+    # planning a trip that's months out, and keeps request volume modest.
+    - cron: "0 3 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run flight scan
+        run: |
+          mkdir -p out
+          python flight_scanner.py \
+            --origins LHR,LGW,STN,LTN,LCY \
+            --destination MEL \
+            --direction outbound \
+            --seat business,economy \
+            --start-date "$(date -d '+14 days' +%Y-%m-%d)" \
+            --end-date "$(date -d '+300 days' +%Y-%m-%d)" \
+            --departure-step 14 \
+            --nights 30,35,40 \
+            --delay 1.2 \
+            --max-requests 1000 \
+            --output out/results.csv \
+            --html-output out/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
